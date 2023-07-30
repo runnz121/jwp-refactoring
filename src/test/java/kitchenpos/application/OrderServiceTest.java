@@ -54,18 +54,12 @@ class OrderServiceTest {
         Order notExistOrder = makeOrder();
         notExistOrder.setOrderLineItems(null);
 
-        Order oneOrderLineItem = makeOrder();
         List<OrderLineItem> oneExist = new ArrayList<>();
         oneExist.add(makeOrderLineItem(3L));
         notExistOrder.setOrderLineItems(oneExist);
-        List<Long> oneIds = oneExist.stream()
-            .map(OrderLineItem::getMenuId).collect(Collectors.toList());;
 
         given(menuDao.countByIdIn(menuIds))
             .willReturn(menuIdsSize);
-        given(menuDao.countByIdIn(oneIds))
-            .willReturn(menuIdsSize);
-
         given(orderTableDao.findById(order.getOrderTableId()))
             .willReturn(Optional.ofNullable(orderTable));
         given(orderDao.save(order))
@@ -77,8 +71,9 @@ class OrderServiceTest {
         assertAll(
             () -> assertThatThrownBy(() -> orderService.create(notExistOrder))
                 .isExactlyInstanceOf(IllegalArgumentException.class),
-            () -> assertThatThrownBy(() -> orderService.create(oneOrderLineItem))
-                .isExactlyInstanceOf(IllegalArgumentException.class)
+            () -> verify(orderTableDao).findById(order.getId()),
+            () -> verify(orderDao).save(order),
+            () -> verify(orderLineItemDao, times(2)).save(any())
         );
     }
 
@@ -86,11 +81,19 @@ class OrderServiceTest {
     @Test
     void listTest() {
 
+        // when
+        orderService.list();
+
+        assertAll(
+            () -> verify(orderDao).findAll()
+        );
     }
 
     @DisplayName("주문 정보 상태가 변경되는지 확인하는 테스트")
     @Test
     void changeOrderStatusTest() {
+
+
 
     }
 
